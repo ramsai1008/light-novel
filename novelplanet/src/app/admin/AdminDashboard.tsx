@@ -1,6 +1,8 @@
 
 import { db } from "@/lib/firebase";
-import { collection, getDocs, deleteDoc, doc, query, orderBy } from "firebase/firestore";
+import { storage } from "@/lib/firebase";
+import { ref, deleteObject } from "firebase/storage";
+import { collection, getDocs, getDoc, deleteDoc, doc, query, orderBy } from "firebase/firestore";
 import Link from "next/link";
 "use client";
 import { useEffect, useState } from "react";
@@ -57,20 +59,36 @@ export default function AdminDashboard() {
               <button
                 onClick={async () => {
                   const confirm = window.confirm(
-                    "Delete this novel and all its chapters?"
+                    "Delete this novel, its chapters, and cover image?"
                   );
                   if (!confirm) return;
 
-                  // 1. Delete all chapters
-                  const chaptersSnap = await getDocs(
-                    collection(db, `novels/${novel.id}/chapters`)
-                  );
+                  const novelRef = doc(db, "novels", novel.id);
+                  const novelSnap = await getDoc(novelRef);
+                  const novelData = novelSnap.data();
+
+                  // 1. Delete chapters
+                  const chaptersSnap = await getDocs(collection(db, `novels/${novel.id}/chapters`));
                   for (const c of chaptersSnap.docs) {
                     await deleteDoc(c.ref);
                   }
 
-                  // 2. Delete novel itself
-                  await deleteDoc(doc(db, "novels", novel.id));
+                  // 2. Delete cover image if exists
+                  if (novelData?.coverUrl) {
+                    try {
+                      const coverPath = decodeURIComponent(
+                        new URL(novelData.coverUrl).pathname.split("/o/")[1].split("?")[0]
+                      );
+                      const storageRef = ref(storage, coverPath);
+                      await deleteObject(storageRef);
+                    } catch (err) {
+                      console.error("Failed to delete cover image:", err);
+                    }
+                  }
+
+                  // 3. Delete novel doc
+                  await deleteDoc(novelRef);
+
                   location.reload();
                 }}
                 className="text-red-600 hover:underline ml-2"

@@ -1,6 +1,41 @@
+
+// --- CLIENT COMPONENT: ContinueReading ---
+"use client";
+import { useEffect, useState } from "react";
+import { auth } from "@/lib/firebase";
+import { doc as firestoreDoc, getDoc as firestoreGetDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import Link from "next/link";
+
+export function ContinueReading({ novelId }: { novelId: string }) {
+  const [chapterId, setChapterId] = useState<string | null>(null);
+
+  useEffect(() => {
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return;
+      const snap = await firestoreGetDoc(firestoreDoc(db, `users/${user.uid}/reading/${novelId}`));
+      if (snap.exists()) {
+        setChapterId(snap.data().chapterId);
+      }
+    });
+  }, [novelId]);
+
+  if (!chapterId) return null;
+
+  return (
+    <Link
+      href={`/novels/${novelId}/chapters/${chapterId}`}
+      className="inline-block mt-2 text-blue-600 underline"
+    >
+      🔁 Continue Reading
+    </Link>
+  );
+}
+
+// --- SERVER COMPONENT: NovelPage ---
 import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
-import Link from "next/link";
+// import Link from "next/link";
 import { notFound } from "next/navigation";
 
 interface Chapter {
