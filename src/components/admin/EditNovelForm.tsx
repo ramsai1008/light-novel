@@ -1,19 +1,33 @@
 'use client'
 
-import { useState } from 'react'
-import { db, storage } from '@/lib/firebase'
-import { addDoc, collection, serverTimestamp, doc, updateDoc } from 'firebase/firestore'
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { db } from '@/lib/firebase'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { Button } from '@/components/ui/button'
 
-export default function CreateNovelForm() {
+export default function EditNovelForm() {
+  const { novelId } = useParams()
+  const router = useRouter()
+
   const [title, setTitle] = useState('')
-  const [cover, setCover] = useState<File | null>(null)
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const fetchNovel = async () => {
+      const snap = await getDoc(doc(db, 'novels', novelId as string))
+      if (!snap.exists()) return alert('Novel not found')
+      const data = snap.data()
+      setTitle(data.title || '')
+      setTags(data.tags || [])
+      setLoading(false)
+    }
+
+    fetchNovel()
+  }, [novelId])
 
   const addTag = () => {
     const trimmed = tagInput.trim()
@@ -27,54 +41,36 @@ export default function CreateNovelForm() {
     setTags(tags.filter((t) => t !== tag))
   }
 
-  const handleSubmit = async () => {
-    if (!title || !cover) return alert('Title and cover are required')
-    setLoading(true)
-
-    // 1. Create novel
-    const novelRef = await addDoc(collection(db, 'novels'), {
+  const handleSave = async () => {
+    setSaving(true)
+    await updateDoc(doc(db, 'novels', novelId as string), {
       title,
       tags,
-      createdAt: serverTimestamp(),
     })
-
-    // 2. Upload cover
-    const coverRef = ref(storage, `covers/${novelRef.id}.jpg`)
-    await uploadBytes(coverRef, cover)
-    const coverUrl = await getDownloadURL(coverRef)
-
-    // 3. Update doc with cover URL
-    await updateDoc(doc(db, 'novels', novelRef.id), { coverUrl })
-
-    alert('Novel created!')
-    router.push(`/novels/${novelRef.id}`)
+    alert('Novel updated!')
+    router.push(`/novels/${novelId}`)
   }
+
+  if (loading) return <p className="p-4">Loading novel...</p>
 
   return (
     <div className="max-w-xl mx-auto p-6 space-y-4">
-      <h1 className="text-2xl font-bold">📘 Add New Novel</h1>
+      <h1 className="text-2xl font-bold">📝 Edit Novel</h1>
 
       <input
         type="text"
         className="border p-2 w-full"
-        placeholder="Novel Title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
       />
 
-      <input
-        type="file"
-        accept="image/*"
-        onChange={(e) => setCover(e.target.files?.[0] || null)}
-      />
-
-      {/* Genre/Tag Input */}
+      {/* Genre Editing */}
       <div className="space-y-2">
         <div className="flex gap-2">
           <input
             type="text"
             className="border p-2 flex-1"
-            placeholder="Add genre (e.g. Action)"
+            placeholder="Add tag (e.g. Fantasy)"
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
@@ -99,8 +95,8 @@ export default function CreateNovelForm() {
         </div>
       </div>
 
-      <Button disabled={loading} onClick={handleSubmit}>
-        {loading ? 'Creating...' : 'Create Novel'}
+      <Button disabled={saving} onClick={handleSave}>
+        {saving ? 'Saving...' : 'Save Changes'}
       </Button>
     </div>
   )
