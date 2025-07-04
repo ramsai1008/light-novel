@@ -5,7 +5,8 @@ import { ref, deleteObject } from "firebase/storage";
 import { collection, getDocs, getDoc, deleteDoc, doc, query, orderBy } from "firebase/firestore";
 import Link from "next/link";
 "use client";
-import { useEffect, useState } from "react";
+
+import AdminStats from './AdminStats';
 
 export default function AdminDashboard() {
   const [novels, setNovels] = useState<any[]>([]);
@@ -43,14 +44,13 @@ export default function AdminDashboard() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">📘 Admin Dashboard</h1>
-
+      <AdminStats />
       <Link
         href="/novels/new"
         className="text-blue-600 hover:underline mb-4 inline-block"
       >
         ➕ Add New Novel
       </Link>
-
       <div className="space-y-8">
         {novels.map((novel) => (
           <div key={novel.id} className="border rounded-lg p-4">
