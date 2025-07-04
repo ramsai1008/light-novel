@@ -36,6 +36,9 @@ export default function RootLayout({
           <Link href="/search" className="text-sm text-blue-600 hover:underline">
             🔍 Search
           </Link>
+          <Link href="/genres" className="text-sm text-blue-600 hover:underline">
+            🏷 Genres
+          </Link>
         </nav>
         {children}
       </body>
