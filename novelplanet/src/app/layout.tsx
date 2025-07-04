@@ -32,6 +32,9 @@ export default function RootLayout({
           <Link href="/history" className="text-sm text-blue-600 hover:underline">
             📚 History
           </Link>
+          <Link href="/search" className="text-sm text-blue-600 hover:underline">
+            🔍 Search
+          </Link>
         </nav>
         {children}
       </body>

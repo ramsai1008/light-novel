@@ -1,0 +1,96 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { db } from '@/lib/firebase'
+import { collection, getDocs } from 'firebase/firestore'
+import Link from 'next/link'
+
+type Novel = {
+  id: string
+  title: string
+  coverUrl?: string
+}
+
+export default function SearchPage() {
+  const [novels, setNovels] = useState<Novel[]>([])
+  const [query, setQuery] = useState('')
+  const [suggestions, setSuggestions] = useState<Novel[]>([])
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+
+  useEffect(() => {
+    const fetchNovels = async () => {
+      const snap = await getDocs(collection(db, 'novels'))
+      const all = snap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Novel[]
+      setNovels(all)
+      setLoading(false)
+    }
+
+    fetchNovels()
+  }, [])
+
+  useEffect(() => {
+    const q = query.toLowerCase()
+    setSuggestions(
+      novels
+        .filter((n) => n.title.toLowerCase().includes(q))
+        .slice(0, 5) // limit suggestions
+    )
+  }, [query, novels])
+
+  const handleSelect = (novelId: string) => {
+    router.push(`/novels/${novelId}`)
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (suggestions[0]) {
+      handleSelect(suggestions[0].id)
+    }
+  }
+
+  return (
+    <div className="p-6 max-w-xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">🔍 Search Novels</h1>
+
+      <form onSubmit={handleSubmit} className="relative">
+        <input
+          type="text"
+          className="border p-2 w-full"
+          placeholder="Start typing a novel title..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {query && suggestions.length > 0 && (
+          <ul className="absolute left-0 right-0 bg-white border border-t-0 rounded-b shadow z-10">
+            {suggestions.map((n) => (
+              <li
+                key={n.id}
+                className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
+                onClick={() => handleSelect(n.id)}
+              >
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: n.title.replace(
+                      new RegExp(query, 'i'),
+                      (match) => `<mark>${match}</mark>`
+                    )
+                  }}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </form>
+
+      {loading ? (
+        <p className="mt-4 text-gray-500">Loading...</p>
+      ) : query && suggestions.length === 0 ? (
+        <p className="mt-4 text-gray-500">No results found.</p>
+      ) : null}
+    </div>
+  )
+}
