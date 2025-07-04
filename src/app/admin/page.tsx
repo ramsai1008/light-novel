@@ -1,7 +1,7 @@
 'use client'
 
+import AdminDashboard from './AdminDashboard'
 import AdminGuard from '@/components/auth/AdminGuard'
-// ...rest of your imports
 
 export default function AdminPageWrapper() {
   return (
